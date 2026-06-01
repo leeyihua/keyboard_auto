@@ -1,5 +1,7 @@
 # 按鍵精靈 — 跨平台鍵盤自動化工具
 
+[![GitHub](https://img.shields.io/badge/GitHub-leeyihua%2Fkeyboard__auto-blue?logo=github)](https://github.com/leeyihua/keyboard_auto)
+
 以 Python + customtkinter 打造的視覺化鍵盤/滑鼠自動化工具，支援 macOS、Windows、Linux，可設定多種步驟組合成腳本並循環執行。
 
 ---
