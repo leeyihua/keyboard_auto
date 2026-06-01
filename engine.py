@@ -203,22 +203,72 @@ class ExecutionEngine:
         try:
             if system == "Windows":
                 import ctypes
-                # 關閉 Caps Lock
                 if ctypes.windll.user32.GetKeyState(0x14) & 1:
                     pyautogui.press("capslock")
-                # 切換至英文輸入法
                 hkl = ctypes.windll.user32.LoadKeyboardLayoutW("00000409", 1)
                 hwnd = ctypes.windll.user32.GetForegroundWindow()
                 ctypes.windll.user32.PostMessageW(hwnd, 0x0050, 0, hkl)
             elif system == "Darwin":
-                import subprocess
-                # 嘗試用 AppleScript 選取 ABC 輸入源
-                subprocess.run(
-                    ["osascript", "-e",
-                     'tell application "System Events" to '
-                     'tell process "SystemUIServer" to '
-                     'key code 49 using {control down, space down}'],
-                    capture_output=True, timeout=2,
-                )
+                self._select_english_input_mac()
         except Exception:
-            pass  # 靜默忽略，不影響主要功能
+            pass
+
+    def _select_english_input_mac(self):
+        """透過 macOS TIS API 直接切換至英文鍵盤佈局"""
+        import ctypes
+
+        carbon = ctypes.CDLL('/System/Library/Frameworks/Carbon.framework/Carbon')
+        cf     = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+
+        carbon.TISCreateInputSourceList.restype  = ctypes.c_void_p
+        carbon.TISCreateInputSourceList.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+        carbon.TISGetInputSourceProperty.restype  = ctypes.c_void_p
+        carbon.TISGetInputSourceProperty.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        carbon.TISSelectInputSource.restype  = ctypes.c_int32
+        carbon.TISSelectInputSource.argtypes = [ctypes.c_void_p]
+
+        cf.CFArrayGetCount.restype  = ctypes.c_long
+        cf.CFArrayGetCount.argtypes = [ctypes.c_void_p]
+        cf.CFArrayGetValueAtIndex.restype  = ctypes.c_void_p
+        cf.CFArrayGetValueAtIndex.argtypes = [ctypes.c_void_p, ctypes.c_long]
+        cf.CFStringGetCString.restype  = ctypes.c_bool
+        cf.CFStringGetCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_long, ctypes.c_uint32]
+        cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+        kPropID = ctypes.c_void_p.in_dll(carbon, 'kTISPropertyInputSourceID').value
+        kUTF8   = 0x08000100
+
+        # 依優先順序列出常見英文鍵盤佈局 ID
+        TARGETS = (
+            'com.apple.keylayout.ABC',
+            'com.apple.keylayout.US',
+            'com.apple.keylayout.USInternational-PC',
+            'com.apple.keylayout.British',
+            'com.apple.keylayout.Australian',
+        )
+
+        sources = carbon.TISCreateInputSourceList(None, True)
+        if not sources:
+            return
+
+        try:
+            n = cf.CFArrayGetCount(sources)
+            id_to_src = {}
+            for i in range(n):
+                src = cf.CFArrayGetValueAtIndex(sources, i)
+                if not src:
+                    continue
+                id_ref = carbon.TISGetInputSourceProperty(src, kPropID)
+                if not id_ref:
+                    continue
+                buf = ctypes.create_string_buffer(256)
+                if cf.CFStringGetCString(id_ref, buf, 256, kUTF8):
+                    id_to_src[buf.value.decode('utf-8', errors='ignore')] = src
+
+            for target in TARGETS:
+                if target in id_to_src:
+                    carbon.TISSelectInputSource(id_to_src[target])
+                    time.sleep(0.1)
+                    return
+        finally:
+            cf.CFRelease(sources)
