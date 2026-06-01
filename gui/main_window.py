@@ -29,6 +29,7 @@ class MainWindow(ctk.CTk):
         self.config_data = new_config()
         self.current_file = None
         self.selected_index = None
+        self._running_step = None
 
         self.engine = ExecutionEngine()
         self.engine.on_status = self._on_engine_status
@@ -190,7 +191,7 @@ class MainWindow(ctk.CTk):
                 row.grid(row=i, column=0, sticky="ew", pady=1)
                 self.step_rows.append(row)
 
-        self._apply_selection()
+        self._apply_row_colors()
 
     def _make_row(self, idx, step):
         row = ctk.CTkFrame(self.step_scroll, height=30, corner_radius=3)
@@ -210,7 +211,7 @@ class MainWindow(ctk.CTk):
 
         def _click(e, i=idx):
             self.selected_index = i
-            self._apply_selection()
+            self._apply_row_colors()
 
         def _dbl(e, i=idx):
             self.selected_index = i
@@ -222,11 +223,19 @@ class MainWindow(ctk.CTk):
 
         return row
 
-    def _apply_selection(self):
+    def _apply_row_colors(self):
         for i, row in enumerate(self.step_rows):
-            selected = (i == self.selected_index)
-            fg = ("dodgerblue2", "royalblue4") if selected else ("gray85", "gray22")
-            tc = "white" if selected else None
+            is_running = (i == self._running_step)
+            is_selected = (i == self.selected_index)
+            if is_running:
+                fg = ("darkorange3", "darkorange4")
+                tc = "white"
+            elif is_selected:
+                fg = ("dodgerblue2", "royalblue4")
+                tc = "white"
+            else:
+                fg = ("gray85", "gray22")
+                tc = None
             row.configure(fg_color=fg)
             for w in row.winfo_children():
                 try:
@@ -358,7 +367,8 @@ class MainWindow(ctk.CTk):
             self.loop_var.set(str(data.get("loop_count", 1)))
             self.delay_var.set(str(data.get("start_delay", 3)))
             self.eng_var.set(data.get("ensure_english", True))
-            self.title(f"按鍵精靈 — {os.path.basename(path)}")
+            script_name = data.get("name", "") or os.path.basename(path)
+            self.title(f"按鍵精靈 — {script_name}")
             self._refresh_list()
         except Exception as e:
             messagebox.showerror("開啟失敗", str(e))
@@ -385,7 +395,8 @@ class MainWindow(ctk.CTk):
         try:
             save(path, self.config_data)
             self.current_file = path
-            self.title(f"按鍵精靈 — {os.path.basename(path)}")
+            script_name = self.config_data.get("name", "") or os.path.basename(path)
+            self.title(f"按鍵精靈 — {script_name}")
         except Exception as e:
             messagebox.showerror("儲存失敗", str(e))
 
@@ -418,6 +429,7 @@ class MainWindow(ctk.CTk):
         self.run_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal", fg_color=("red3", "red4"))
         self.engine.start(self.config_data)
+        self.after(100, self._monitor_engine)
 
     def _stop(self):
         self.engine.stop()
@@ -431,15 +443,33 @@ class MainWindow(ctk.CTk):
             loop_txt = f"第 {loop}/{total_loops} 輪"
 
         status = f"{loop_txt}  ▶  步驟 {step}/{total_steps}：{msg}" if step else msg
-        self.after(0, lambda: self.status_label.configure(text=status))
+        running_idx = step - 1 if step > 0 else None
+
+        def _update(s=status, ri=running_idx):
+            self.status_label.configure(text=s)
+            self._running_step = ri
+            self._apply_row_colors()
+
+        self.after(0, _update)
 
     def _on_engine_finished(self, cancelled):
         def _update():
+            self._running_step = None
             self.run_btn.configure(state="normal")
             self.stop_btn.configure(state="disabled", fg_color="gray50")
             txt = "已停止" if cancelled else "執行完成 ✓"
             self.status_label.configure(text=txt)
+            self._apply_row_colors()
         self.after(0, _update)
+
+    def _monitor_engine(self):
+        if self.engine.is_running():
+            self.after(100, self._monitor_engine)
+        else:
+            self._running_step = None
+            self.run_btn.configure(state="normal")
+            self.stop_btn.configure(state="disabled", fg_color="gray50")
+            self._apply_row_colors()
 
     # ── 熱鍵 ──────────────────────────────────────────────────────
 

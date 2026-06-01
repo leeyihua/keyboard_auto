@@ -147,11 +147,9 @@ class ExecutionEngine:
 
     def _sleep(self, seconds):
         """可中斷的 sleep，每 50ms 檢查一次 running 旗標"""
-        elapsed = 0.0
-        step_size = 0.05
-        while elapsed < seconds and self.running:
-            time.sleep(step_size)
-            elapsed += step_size
+        end = time.time() + seconds
+        while time.time() < end and self.running:
+            time.sleep(0.05)
 
     def _notify(self, loop, total, step, total_steps, msg):
         if self.on_status:
