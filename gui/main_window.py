@@ -29,11 +29,8 @@ class MainWindow(ctk.CTk):
         self.config_data = new_config()
         self.current_file = None
         self.selected_index = None
-        self._running_step = None
 
         self.engine = ExecutionEngine()
-        self.engine.on_status = self._on_engine_status
-        self.engine.on_finished = self._on_engine_finished
 
         self._build_ui()
         self._setup_global_hotkeys()
@@ -225,17 +222,9 @@ class MainWindow(ctk.CTk):
 
     def _apply_row_colors(self):
         for i, row in enumerate(self.step_rows):
-            is_running = (i == self._running_step)
-            is_selected = (i == self.selected_index)
-            if is_running:
-                fg = ("darkorange3", "darkorange4")
-                tc = "white"
-            elif is_selected:
-                fg = ("dodgerblue2", "royalblue4")
-                tc = "white"
-            else:
-                fg = ("gray85", "gray22")
-                tc = None
+            selected = (i == self.selected_index)
+            fg = ("dodgerblue2", "royalblue4") if selected else ("gray85", "gray22")
+            tc = "white" if selected else None
             row.configure(fg_color=fg)
             for w in row.winfo_children():
                 try:
@@ -434,42 +423,14 @@ class MainWindow(ctk.CTk):
     def _stop(self):
         self.engine.stop()
 
-    def _on_engine_status(self, loop, total_loops, step, total_steps, msg):
-        if total_loops == 0:
-            loop_txt = f"第 {loop} 輪（無限）"
-        elif loop == 0:
-            loop_txt = ""
-        else:
-            loop_txt = f"第 {loop}/{total_loops} 輪"
-
-        status = f"{loop_txt}  ▶  步驟 {step}/{total_steps}：{msg}" if step else msg
-        running_idx = step - 1 if step > 0 else None
-
-        def _update(s=status, ri=running_idx):
-            self.status_label.configure(text=s)
-            self._running_step = ri
-            self._apply_row_colors()
-
-        self.after(0, _update)
-
-    def _on_engine_finished(self, cancelled):
-        def _update():
-            self._running_step = None
-            self.run_btn.configure(state="normal")
-            self.stop_btn.configure(state="disabled", fg_color="gray50")
-            txt = "已停止" if cancelled else "執行完成 ✓"
-            self.status_label.configure(text=txt)
-            self._apply_row_colors()
-        self.after(0, _update)
-
     def _monitor_engine(self):
+        if self.engine.status_text:
+            self.status_label.configure(text=self.engine.status_text)
         if self.engine.is_running():
             self.after(100, self._monitor_engine)
         else:
-            self._running_step = None
             self.run_btn.configure(state="normal")
             self.stop_btn.configure(state="disabled", fg_color="gray50")
-            self._apply_row_colors()
 
     # ── 熱鍵 ──────────────────────────────────────────────────────
 

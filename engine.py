@@ -24,6 +24,7 @@ class ExecutionEngine:
         self._thread = None
         self.on_status = None    # callback(loop, total_loops, step, total_steps, message)
         self.on_finished = None  # callback(cancelled: bool)
+        self.status_text = ""    # 供主執行緒輪詢用
 
     def start(self, config):
         if self.running:
@@ -35,6 +36,7 @@ class ExecutionEngine:
         self._thread.start()
 
     def stop(self):
+        self.status_text = "已停止"
         self.running = False
 
     def is_running(self):
@@ -152,10 +154,22 @@ class ExecutionEngine:
             time.sleep(0.05)
 
     def _notify(self, loop, total, step, total_steps, msg):
+        if total == 0:
+            loop_txt = f"第 {loop} 輪（無限）"
+        elif loop == 0:
+            loop_txt = ""
+        else:
+            loop_txt = f"第 {loop}/{total} 輪"
+        if step:
+            prefix = f"{loop_txt}  ▶  " if loop_txt else ""
+            self.status_text = f"{prefix}步驟 {step}/{total_steps}：{msg}"
+        else:
+            self.status_text = msg
         if self.on_status:
             self.on_status(loop, total, step, total_steps, msg)
 
     def _finish(self, cancelled):
+        self.status_text = "已停止" if cancelled else "執行完成 ✓"
         self.running = False
         if self.on_finished:
             self.on_finished(cancelled)
