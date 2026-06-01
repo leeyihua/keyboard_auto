@@ -29,21 +29,34 @@
 
 ## 安裝與執行
 
-### 使用 uv（推薦）
+### macOS / Linux
 
 ```bash
-# 安裝相依套件
+# 使用 uv（推薦）
 uv sync
-
-# 啟動程式
 uv run python main.py
+
+# 使用 pip
+pip install customtkinter pillow pyautogui pynput pyperclip
+python main.py
 ```
 
-### 使用 pip
+### Windows
 
-```bash
+**1. 安裝 Python 3.12+**
+
+前往 [python.org](https://www.python.org/downloads/) 下載安裝，**務必勾選「Add Python to PATH」**。
+
+**2. 安裝套件並執行**
+
+```powershell
+# 使用 uv（推薦）
+winget install astral-sh.uv
+uv sync
+uv run python main.py
+
+# 使用 pip
 pip install customtkinter pillow pyautogui pynput pyperclip
-
 python main.py
 ```
 
@@ -58,6 +71,57 @@ python main.py
 3. 重新啟動程式
 
 > 若使用 VS Code 或其他 IDE 執行，需將對應的 app 加入允許清單。
+
+---
+
+## 打包成 Windows 執行檔（.exe）
+
+若要在沒有安裝 Python 的 Windows 電腦上執行，可用 PyInstaller 打包。
+
+### 安裝 PyInstaller
+
+```powershell
+pip install pyinstaller
+```
+
+### 打包指令
+
+```powershell
+pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter main.py
+```
+
+| 參數 | 說明 |
+|------|------|
+| `--onefile` | 輸出為單一 `.exe` 檔案 |
+| `--windowed` | 執行時不顯示命令提示字元視窗 |
+| `--name 按鍵精靈` | 指定輸出檔名 |
+| `--collect-all customtkinter` | 打包 customtkinter 所有主題與資源檔 |
+
+打包完成後，執行檔位於 `dist/按鍵精靈.exe`。
+
+### 加入自訂圖示（選用）
+
+準備一個 `.ico` 格式的圖示檔，加上 `--icon` 參數：
+
+```powershell
+pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter --icon icon.ico main.py
+```
+
+### 注意事項
+
+- 打包須在 **Windows 環境**下執行（無法在 macOS 打包 Windows 執行檔）
+- 首次打包時間較長（需封裝 Python runtime），約 1～3 分鐘
+- 部分防毒軟體可能誤報 PyInstaller 打包的執行檔，可提交白名單排除
+- `profiles/` 腳本目錄會自動建立於執行檔同層目錄
+
+### 平台差異對照
+
+| 項目 | macOS | Windows |
+|------|-------|---------|
+| 輔助功能授權 | 需手動開啟 | 不需要 |
+| 英文輸入切換 | AppleScript | ctypes（已內建）|
+| `command` 鍵 | Mac Cmd 鍵 | 不適用，改用 `win` |
+| 全域熱鍵 F9/F10 | 正常運作 | 正常運作 |
 
 ---
 
