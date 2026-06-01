@@ -6,7 +6,6 @@ DEFAULT_CONFIG = {
     "name": "新腳本",
     "loop_count": 1,
     "start_delay": 3,
-    "ensure_english": True,
     "steps": [],
 }
 

@@ -87,9 +87,6 @@ class MainWindow(ctk.CTk):
         self.delay_var = tk.StringVar(value=str(self.config_data.get("start_delay", 3)))
         ctk.CTkEntry(bar, textvariable=self.delay_var, width=46).pack(side="left")
 
-        self.eng_var = tk.BooleanVar(value=self.config_data.get("ensure_english", True))
-        ctk.CTkCheckBox(bar, text="執行前切換英文輸入",
-                        variable=self.eng_var).pack(side="left", padx=16)
 
     def _build_content(self):
         content = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -335,7 +332,6 @@ class MainWindow(ctk.CTk):
             self.name_var.set(self.config_data["name"])
             self.loop_var.set(str(self.config_data["loop_count"]))
             self.delay_var.set(str(self.config_data["start_delay"]))
-            self.eng_var.set(self.config_data["ensure_english"])
             self.title("按鍵精靈")
             self._refresh_list()
 
@@ -355,7 +351,6 @@ class MainWindow(ctk.CTk):
             self.name_var.set(data.get("name", ""))
             self.loop_var.set(str(data.get("loop_count", 1)))
             self.delay_var.set(str(data.get("start_delay", 3)))
-            self.eng_var.set(data.get("ensure_english", True))
             script_name = data.get("name", "") or os.path.basename(path)
             self.title(f"按鍵精靈 — {script_name}")
             self._refresh_list()
@@ -404,7 +399,6 @@ class MainWindow(ctk.CTk):
             self.config_data["start_delay"] = int(self.delay_var.get())
         except ValueError:
             self.config_data["start_delay"] = 3
-        self.config_data["ensure_english"] = self.eng_var.get()
 
     # ── 執行控制 ──────────────────────────────────────────────────
 
