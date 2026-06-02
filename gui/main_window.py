@@ -87,6 +87,13 @@ class MainWindow(ctk.CTk):
         self.delay_var = tk.StringVar(value=str(self.config_data.get("start_delay", 3)))
         ctk.CTkEntry(bar, textvariable=self.delay_var, width=46).pack(side="left")
 
+        self.topmost_var = tk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            bar, text="視窗置頂", variable=self.topmost_var,
+            command=self._toggle_topmost, width=90,
+        ).pack(side="right", padx=(0, 12))
+        self._toggle_topmost()
+
 
     def _build_content(self):
         content = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -446,6 +453,9 @@ class MainWindow(ctk.CTk):
             self._hotkey_listener.start()
         except Exception:
             pass
+
+    def _toggle_topmost(self):
+        self.wm_attributes("-topmost", self.topmost_var.get())
 
     def _bind_keys(self):
         self.bind("<Control-n>", lambda e: self._new())
