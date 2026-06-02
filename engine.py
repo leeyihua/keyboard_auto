@@ -11,6 +11,7 @@ pyautogui.FAILSAFE = True
 STEP_LABELS = {
     "wait": "等待",
     "key_press": "按鍵",
+    "key_hold": "按住",
     "key_repeat": "連按",
     "key_hotkey": "組合鍵",
     "type_text": "輸入文字",
@@ -89,6 +90,14 @@ class ExecutionEngine:
             key = step.get("key", "")
             if key:
                 pyautogui.press(key)
+
+        elif t == "key_hold":
+            key = step.get("key", "")
+            duration = float(step.get("duration", 1))
+            if key:
+                pyautogui.keyDown(key)
+                self._sleep(duration)
+                pyautogui.keyUp(key)
 
         elif t == "key_repeat":
             key = step.get("key", "")
@@ -175,6 +184,8 @@ class ExecutionEngine:
             return f"等待 {step.get('seconds', 1)} 秒"
         if t == "key_press":
             return f"按鍵 [{step.get('key', '')}]"
+        if t == "key_hold":
+            return f"按住 [{step.get('key', '')}] {step.get('duration', 1)} 秒"
         if t == "key_repeat":
             d_min = step.get("delay_min", step.get("interval", 0.5))
             d_max = step.get("delay_max", step.get("interval", 0.5))

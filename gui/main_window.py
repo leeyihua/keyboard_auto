@@ -243,6 +243,8 @@ class MainWindow(ctk.CTk):
             return f"{step.get('seconds', 1)} 秒"
         if t == "key_press":
             return f"[{step.get('key', '')}]"
+        if t == "key_hold":
+            return f"[{step.get('key', '')}] 持續 {step.get('duration', 1)} 秒"
         if t == "key_repeat":
             d_min = step.get("delay_min", step.get("interval", 0.5))
             d_max = step.get("delay_max", step.get("interval", 0.5))

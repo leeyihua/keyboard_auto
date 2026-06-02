@@ -17,6 +17,7 @@ COMMON_KEYS = [
 STEP_TYPES = [
     ("wait",        "等待"),
     ("key_press",   "按鍵"),
+    ("key_hold",    "按住"),
     ("key_repeat",  "連按"),
     ("key_hotkey",  "組合鍵"),
     ("type_text",   "輸入文字"),
@@ -27,6 +28,7 @@ STEP_TYPES = [
 TYPE_HEIGHTS = {
     "wait":        200,
     "key_press":   200,
+    "key_hold":    220,
     "key_repeat":  310,
     "key_hotkey":  250,
     "type_text":   330,
@@ -113,6 +115,12 @@ class StepEditorDialog(ctk.CTkToplevel):
             e = ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200)
             self._row(0, "按鍵：", e, "key")
 
+        elif type_key == "key_hold":
+            self._row(0, "按鍵：",
+                      ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200), "key")
+            self._row(1, "按住時間（秒）：",
+                      ctk.CTkEntry(self.fields_frame, placeholder_text="10"), "duration")
+
         elif type_key == "key_repeat":
             self._row(0, "按鍵：",
                       ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200), "key")
@@ -191,6 +199,9 @@ class StepEditorDialog(ctk.CTkToplevel):
             w["seconds"].insert(0, str(step.get("seconds", 1)))
         elif t == "key_press":
             w["key"].set(step.get("key", ""))
+        elif t == "key_hold":
+            w["key"].set(step.get("key", ""))
+            w["duration"].insert(0, str(step.get("duration", 1)))
         elif t == "key_repeat":
             w["key"].set(step.get("key", ""))
             w["count"].insert(0, str(step.get("count", 1)))
@@ -230,6 +241,14 @@ class StepEditorDialog(ctk.CTkToplevel):
                     messagebox.showwarning("提示", "請輸入按鍵名稱", parent=self)
                     return
                 self.result = {"type": "key_press", "key": key}
+
+            elif t == "key_hold":
+                key = w["key"].get().strip()
+                if not key:
+                    messagebox.showwarning("提示", "請輸入按鍵名稱", parent=self)
+                    return
+                duration = float(w["duration"].get() or "1")
+                self.result = {"type": "key_hold", "key": key, "duration": duration}
 
             elif t == "key_repeat":
                 key = w["key"].get().strip()
