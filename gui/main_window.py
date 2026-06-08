@@ -87,6 +87,10 @@ class MainWindow(ctk.CTk):
         self.delay_var = tk.StringVar(value=str(self.config_data.get("start_delay", 3)))
         ctk.CTkEntry(bar, textvariable=self.delay_var, width=46).pack(side="left")
 
+        ctk.CTkLabel(bar, text="按鍵間隔（秒）：").pack(side="left", padx=(16, 3))
+        self.pause_var = tk.StringVar(value=str(self.config_data.get("key_pause", 0.1)))
+        ctk.CTkEntry(bar, textvariable=self.pause_var, width=52).pack(side="left")
+
         self.topmost_var = tk.BooleanVar(value=True)
         ctk.CTkCheckBox(
             bar, text="視窗置頂", variable=self.topmost_var,
@@ -341,6 +345,7 @@ class MainWindow(ctk.CTk):
             self.name_var.set(self.config_data["name"])
             self.loop_var.set(str(self.config_data["loop_count"]))
             self.delay_var.set(str(self.config_data["start_delay"]))
+            self.pause_var.set(str(self.config_data["key_pause"]))
             self.title("按鍵精靈")
             self._refresh_list()
 
@@ -360,6 +365,7 @@ class MainWindow(ctk.CTk):
             self.name_var.set(data.get("name", ""))
             self.loop_var.set(str(data.get("loop_count", 1)))
             self.delay_var.set(str(data.get("start_delay", 3)))
+            self.pause_var.set(str(data.get("key_pause", 0.1)))
             script_name = data.get("name", "") or os.path.basename(path)
             self.title(f"按鍵精靈 — {script_name}")
             self._refresh_list()
@@ -408,6 +414,10 @@ class MainWindow(ctk.CTk):
             self.config_data["start_delay"] = int(self.delay_var.get())
         except ValueError:
             self.config_data["start_delay"] = 3
+        try:
+            self.config_data["key_pause"] = float(self.pause_var.get())
+        except ValueError:
+            self.config_data["key_pause"] = 0.1
 
     # ── 執行控制 ──────────────────────────────────────────────────
 

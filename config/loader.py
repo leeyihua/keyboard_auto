@@ -6,6 +6,7 @@ DEFAULT_CONFIG = {
     "name": "新腳本",
     "loop_count": 1,
     "start_delay": 3,
+    "key_pause": 0.1,
     "steps": [],
 }
 

@@ -50,6 +50,8 @@ class ExecutionEngine:
         loop_count = config.get("loop_count", 1)
         start_delay = int(config.get("start_delay", 3))
         infinite = loop_count == 0
+        pyautogui.PAUSE = 0
+        key_pause = float(config.get("key_pause", 0.1))
 
         # 倒數計時
         for i in range(start_delay, 0, -1):
@@ -68,7 +70,7 @@ class ExecutionEngine:
                         break
                     self._notify(loop, loop_count, idx + 1, len(steps),
                                  self._step_desc(step))
-                    self._execute_step(step)
+                    self._execute_step(step, key_pause)
         except pyautogui.FailSafeException:
             self.running = False
             self._notify(0, loop_count, 0, len(steps), "緊急停止（滑鼠移至螢幕角落）")
@@ -80,7 +82,7 @@ class ExecutionEngine:
 
     # ── 步驟執行 ──────────────────────────────────────────────────
 
-    def _execute_step(self, step):
+    def _execute_step(self, step, key_pause=0.1):
         t = step.get("type")
 
         if t == "wait":
@@ -148,6 +150,10 @@ class ExecutionEngine:
             y = int(step.get("y", 0))
             btn = step.get("button", "left")
             pyautogui.click(x, y, button=btn)
+
+        # wait 和 key_repeat 本身已控制時間，其餘步驟補上預設間隔
+        if t not in ("wait", "key_repeat", "key_hold"):
+            self._sleep(key_pause)
 
     # ── 工具方法 ──────────────────────────────────────────────────
 
