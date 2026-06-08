@@ -346,7 +346,7 @@ class MainWindow(ctk.CTk):
         if not self._check_selection():
             return
         steps = self.config_data.get("steps", [])
-        if messagebox.askyesno("確認刪除", f"確定要刪除步驟 {self.selected_index + 1}？"):
+        if self._msgbox(messagebox.askyesno, "確認刪除", f"確定要刪除步驟 {self.selected_index + 1}？"):
             steps.pop(self.selected_index)
             if self.selected_index >= len(steps):
                 self.selected_index = len(steps) - 1 if steps else None
@@ -382,7 +382,7 @@ class MainWindow(ctk.CTk):
 
     def _check_selection(self):
         if self.selected_index is None:
-            messagebox.showwarning("提示", "請先點選一個步驟")
+            self._msgbox(messagebox.showwarning, "提示", "請先點選一個步驟")
             return False
         steps = self.config_data.get("steps", [])
         if self.selected_index >= len(steps):
@@ -393,7 +393,7 @@ class MainWindow(ctk.CTk):
     # ── 檔案操作 ──────────────────────────────────────────────────
 
     def _new(self):
-        if messagebox.askyesno("新增腳本", "建立新腳本？未儲存的內容將會遺失。"):
+        if self._msgbox(messagebox.askyesno, "新增腳本", "建立新腳本？未儲存的內容將會遺失。"):
             self.config_data = new_config()
             self.current_file = None
             self.selected_index = None
@@ -425,7 +425,7 @@ class MainWindow(ctk.CTk):
             self.title(f"按鍵精靈 — {script_name}")
             self._refresh_list()
         except Exception as e:
-            messagebox.showerror("開啟失敗", str(e))
+            self._msgbox(messagebox.showerror, "開啟失敗", str(e))
 
     def _save(self):
         if self.current_file:
@@ -452,7 +452,7 @@ class MainWindow(ctk.CTk):
             script_name = self.config_data.get("name", "") or os.path.basename(path)
             self.title(f"按鍵精靈 — {script_name}")
         except Exception as e:
-            messagebox.showerror("儲存失敗", str(e))
+            self._msgbox(messagebox.showerror, "儲存失敗", str(e))
 
     def _profiles_dir(self):
         d = ROOT / "profiles"
@@ -481,7 +481,7 @@ class MainWindow(ctk.CTk):
             return
         self._sync_ui_to_config()
         if not self.config_data.get("steps"):
-            messagebox.showwarning("提示", "腳本中沒有步驟，請先新增步驟。")
+            self._msgbox(messagebox.showwarning, "提示", "腳本中沒有步驟，請先新增步驟。")
             return
         self.run_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal", fg_color=("red3", "red4"))
@@ -523,6 +523,16 @@ class MainWindow(ctk.CTk):
 
     def _toggle_topmost(self):
         self.wm_attributes("-topmost", self.topmost_var.get())
+
+    def _msgbox(self, fn, title, message, **kw):
+        """顯示 messagebox 前暫時關閉置頂，避免對話框被主視窗蓋住"""
+        was = self.topmost_var.get()
+        if was:
+            self.wm_attributes("-topmost", False)
+        result = fn(title, message, parent=self, **kw)
+        if was:
+            self.wm_attributes("-topmost", True)
+        return result
 
     def _bind_keys(self):
         self.bind("<Control-n>", lambda e: self._new())
