@@ -98,6 +98,12 @@ class MainWindow(ctk.CTk):
         ).pack(side="right", padx=(0, 12))
         self._toggle_topmost()
 
+        self.total_label = ctk.CTkLabel(bar, text="", text_color="gray", font=("", 12))
+        self.total_label.pack(side="right", padx=(0, 16))
+
+        for var in (self.loop_var, self.delay_var, self.pause_var):
+            var.trace_add("write", self._update_total_label)
+
 
     def _build_content(self):
         content = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -185,6 +191,7 @@ class MainWindow(ctk.CTk):
         for row in self.step_rows:
             row.destroy()
         self.step_rows.clear()
+        self._update_total_label()
 
         steps = self.config_data.get("steps", [])
         if not steps:
@@ -240,6 +247,54 @@ class MainWindow(ctk.CTk):
                     w.configure(**kw)
                 except Exception:
                     pass
+
+    def _calc_total_seconds(self):
+        steps = self.config_data.get("steps", [])
+        try:
+            key_pause = float(self.pause_var.get())
+        except ValueError:
+            key_pause = 0.1
+        try:
+            loop_count = int(self.loop_var.get())
+        except ValueError:
+            loop_count = 1
+        try:
+            start_delay = int(self.delay_var.get())
+        except ValueError:
+            start_delay = 3
+
+        per_loop = 0
+        for step in steps:
+            t = step.get("type")
+            if t == "wait":
+                per_loop += float(step.get("seconds", 1))
+            elif t == "key_hold":
+                per_loop += float(step.get("duration", 1))
+            elif t == "key_repeat":
+                count = int(step.get("count", 1))
+                interval = float(step.get("interval", 0.5))
+                d_min = float(step.get("delay_min", interval))
+                d_max = float(step.get("delay_max", interval))
+                per_loop += (count - 1) * (d_min + d_max) / 2
+            else:
+                per_loop += key_pause
+
+        if loop_count == 0:
+            return None
+        return start_delay + loop_count * per_loop
+
+    def _update_total_label(self, *_):
+        if not hasattr(self, "total_label"):
+            return
+        total = self._calc_total_seconds()
+        if total is None:
+            text = "預估：∞"
+        elif total < 60:
+            text = f"預估：{total:.1f} 秒"
+        else:
+            m, s = divmod(total, 60)
+            text = f"預估：{int(m)} 分 {s:.0f} 秒"
+        self.total_label.configure(text=text)
 
     def _step_desc(self, step):
         t = step.get("type", "")
