@@ -2,6 +2,19 @@ import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox
 
+# tkinter keysym → pynput 按鍵名稱對應
+_KEYSYM_MAP = {
+    "Return": "enter", "BackSpace": "backspace", "Delete": "delete",
+    "Escape": "escape", "Tab": "tab", "Insert": "insert",
+    "Home": "home", "End": "end", "Prior": "pageup", "Next": "pagedown",
+    "Up": "up", "Down": "down", "Left": "left", "Right": "right",
+    "Caps_Lock": "capslock", "Num_Lock": "numlock", "Scroll_Lock": "scrolllock",
+    "Pause": "pause", "Print": "printscreen", "space": "space",
+    "F1": "f1", "F2": "f2", "F3": "f3", "F4": "f4",
+    "F5": "f5", "F6": "f6", "F7": "f7", "F8": "f8",
+    "F9": "f9", "F10": "f10", "F11": "f11", "F12": "f12",
+}
+
 COMMON_KEYS = [
     "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
     "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
@@ -100,6 +113,59 @@ class StepEditorDialog(ctk.CTkToplevel):
         widget.grid(row=row, column=1, padx=(0, 12), pady=7, sticky="ew")
         self._field_widgets[key] = widget
 
+    def _key_row(self, row, label_text, key):
+        """加入按鍵選擇列：含滾輪支援 + 直接按鍵擷取按鈕"""
+        ctk.CTkLabel(self.fields_frame, text=label_text, anchor="e", width=100).grid(
+            row=row, column=0, padx=(10, 6), pady=7, sticky="e"
+        )
+        inner = ctk.CTkFrame(self.fields_frame, fg_color="transparent")
+        inner.grid(row=row, column=1, padx=(0, 12), pady=7, sticky="ew")
+        inner.grid_columnconfigure(0, weight=1)
+
+        combo = ctk.CTkComboBox(inner, values=COMMON_KEYS, width=160)
+        combo.grid(row=0, column=0, sticky="ew")
+
+        def _scroll(event, c=combo):
+            cur = c.get()
+            try:
+                idx = COMMON_KEYS.index(cur)
+            except ValueError:
+                idx = 0
+            delta = -1 if (event.delta > 0 or event.num == 4) else 1
+            c.set(COMMON_KEYS[(idx + delta) % len(COMMON_KEYS)])
+
+        combo.bind("<MouseWheel>", _scroll)
+        combo.bind("<Button-4>", _scroll)
+        combo.bind("<Button-5>", _scroll)
+        try:
+            combo._entry.bind("<MouseWheel>", _scroll)
+            combo._entry.bind("<Button-4>", _scroll)
+            combo._entry.bind("<Button-5>", _scroll)
+        except AttributeError:
+            pass
+
+        btn = ctk.CTkButton(inner, text="按鍵", width=55,
+                            command=lambda: self._start_key_capture(combo, btn))
+        btn.grid(row=0, column=1, padx=(6, 0))
+
+        self._field_widgets[key] = combo
+
+    def _start_key_capture(self, combo, btn):
+        """進入按鍵擷取模式：下一個按鍵將被設定為選取值"""
+        btn.configure(text="請按鍵...", state="disabled")
+        self.unbind("<Escape>")
+
+        def _on_key(event):
+            self.unbind("<KeyPress>")
+            self.bind("<Escape>", lambda e: self.destroy())
+            btn.configure(text="按鍵", state="normal")
+            key_name = _KEYSYM_MAP.get(event.keysym, event.keysym.lower())
+            combo.set(key_name)
+            return "break"
+
+        self.bind("<KeyPress>", _on_key)
+        self.focus_set()
+
     # ── 類型切換 ──────────────────────────────────────────────────
 
     def _on_type_change(self, type_label):
@@ -112,18 +178,15 @@ class StepEditorDialog(ctk.CTkToplevel):
             self._row(0, "等待時間（秒）：", e, "seconds")
 
         elif type_key == "key_press":
-            e = ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200)
-            self._row(0, "按鍵：", e, "key")
+            self._key_row(0, "按鍵：", "key")
 
         elif type_key == "key_hold":
-            self._row(0, "按鍵：",
-                      ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200), "key")
+            self._key_row(0, "按鍵：", "key")
             self._row(1, "按住時間（秒）：",
                       ctk.CTkEntry(self.fields_frame, placeholder_text="10"), "duration")
 
         elif type_key == "key_repeat":
-            self._row(0, "按鍵：",
-                      ctk.CTkComboBox(self.fields_frame, values=COMMON_KEYS, width=200), "key")
+            self._key_row(0, "按鍵：", "key")
             self._row(1, "次數：",
                       ctk.CTkEntry(self.fields_frame, placeholder_text="5"), "count")
             self._row(2, "固定間隔（秒）：",
