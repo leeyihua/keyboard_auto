@@ -2,7 +2,7 @@
   "name": "範例腳本",
   "loop_count": 3,
   "start_delay": 3,
-  "ensure_english": true,
+  "key_pause": 0.1,
   "steps": [
     {
       "type": "wait",
@@ -11,6 +11,11 @@
     {
       "type": "key_press",
       "key": "f5"
+    },
+    {
+      "type": "key_hold",
+      "key": "w",
+      "duration": 3.0
     },
     {
       "type": "key_repeat",
@@ -22,12 +27,21 @@
     },
     {
       "type": "key_hotkey",
-      "keys": ["ctrl", "a"]
+      "keys": [
+        "ctrl",
+        "a"
+      ]
     },
     {
       "type": "type_text",
       "text": "Hello, World!",
       "use_clipboard": true
+    },
+    {
+      "type": "mouse_click",
+      "x": 100,
+      "y": 200,
+      "button": "left"
     }
   ]
 }

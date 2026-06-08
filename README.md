@@ -8,10 +8,11 @@
 
 ## 功能特色
 
-- **6 種步驟類型**：等待、按鍵、連按（支援隨機間隔）、組合鍵、輸入文字、滑鼠點擊
+- **7 種步驟類型**：等待、按鍵、按住、連按（支援隨機間隔）、組合鍵、輸入文字、滑鼠點擊
 - **腳本管理**：新增 / 開啟 / 儲存 / 另存 JSON 腳本檔
 - **步驟操作**：新增、編輯、複製、刪除、上移、下移
-- **執行控制**：設定循環次數（0 = 無限）、開始延遲、執行前自動切換英文輸入
+- **執行控制**：設定循環次數（0 = 無限）、開始延遲、按鍵間隔
+- **預估總執行時間**：依步驟與設定即時顯示預估秒數
 - **全域熱鍵**：F9 執行 / F10 停止，即使視窗未在前景也有效
 - **緊急停止**：pyautogui FailSafe — 將滑鼠移至螢幕左上角立即中止
 
@@ -121,7 +122,6 @@ pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter
 | 項目 | macOS | Windows |
 |------|-------|---------|
 | 輔助功能授權 | 需手動開啟 | 不需要 |
-| 英文輸入切換 | AppleScript | ctypes（已內建）|
 | `command` 鍵 | Mac Cmd 鍵 | 不適用，改用 `win` |
 | 全域熱鍵 F9/F10 | 正常運作 | 正常運作 |
 
@@ -154,10 +154,21 @@ pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter
   "name": "範例腳本",
   "loop_count": 3,
   "start_delay": 3,
-  "ensure_english": true,
+  "key_pause": 0.1,
   "steps": [
-    { "type": "wait", "seconds": 1.0 },
-    { "type": "key_press", "key": "f5" },
+    {
+      "type": "wait",
+      "seconds": 1.0
+    },
+    {
+      "type": "key_press",
+      "key": "f5"
+    },
+    {
+      "type": "key_hold",
+      "key": "w",
+      "duration": 3.0
+    },
     {
       "type": "key_repeat",
       "key": "space",
@@ -166,9 +177,24 @@ pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter
       "delay_min": 0.8,
       "delay_max": 1.2
     },
-    { "type": "key_hotkey", "keys": ["ctrl", "a"] },
-    { "type": "type_text", "text": "Hello, World!", "use_clipboard": true },
-    { "type": "mouse_click", "x": 100, "y": 200, "button": "left" }
+    {
+      "type": "key_hotkey",
+      "keys": [
+        "ctrl",
+        "a"
+      ]
+    },
+    {
+      "type": "type_text",
+      "text": "Hello, World!",
+      "use_clipboard": true
+    },
+    {
+      "type": "mouse_click",
+      "x": 100,
+      "y": 200,
+      "button": "left"
+    }
   ]
 }
 ```
@@ -179,10 +205,30 @@ pyinstaller --onefile --windowed --name 按鍵精靈 --collect-all customtkinter
 |------|------|------|
 | `wait` | `seconds` | 等待指定秒數 |
 | `key_press` | `key` | 按下單一按鍵（如 `f5`、`enter`） |
+| `key_hold` | `key`, `duration` | 按住指定按鍵持續 `duration` 秒後放開 |
 | `key_repeat` | `key`, `count`, `interval`, `delay_min`, `delay_max` | 連按指定次數，可設定固定或隨機間隔 |
 | `key_hotkey` | `keys` | 按下組合鍵（如 `["ctrl", "c"]`） |
 | `type_text` | `text`, `use_clipboard` | 輸入文字，建議開啟 `use_clipboard` 以支援中文 |
 | `mouse_click` | `x`, `y`, `button` | 點擊指定座標（`button`: `left`/`right`/`middle`） |
+
+### 時間規則
+
+`key_pause`（按鍵間隔）是每個**按鍵動作完成後**自動補上的停頓，讓目標程式有時間反應。但下列步驟本身已明確控制時間，**不會疊加** `key_pause`：
+
+| 步驟 | 原因 |
+|------|------|
+| `wait` | 本身就是等待，時間由 `seconds` 決定 |
+| `key_hold` | 持續時間由 `duration` 決定 |
+| `key_repeat` | 每次按鍵的間隔由 `interval`（或 `delay_min`/`delay_max`）決定 |
+
+**範例**（`key_pause` = 1 秒）：
+
+```
+key_press w  →  [自動等 1 秒]  →  key_press o       兩鍵間隔 1 秒
+key_press w  →  [自動等 1 秒]  →  wait 2s  →  key_press o   兩鍵間隔 3 秒
+key_hold w 3s                  →  key_press o       兩步驟間隔 3 秒（不疊加）
+key_repeat w ×3 interval=1s                         每次間隔 1 秒（不疊加）
+```
 
 ---
 
